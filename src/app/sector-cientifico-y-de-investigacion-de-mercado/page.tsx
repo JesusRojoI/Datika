@@ -3,14 +3,14 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useCartStore, CartItem } from '@/store/cartStore';
+import NavigationLink from '@/components/layout/NavigationLink';
 
 export default function ScientificSectorPage() {
   const { t } = useTranslation('common');
   const addItem = useCartStore((state) => state.addItem);
   const setFlyoutOpen = useCartStore((state) => state.setFlyoutOpen);
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' } | null>(null);
 
   const products = [
     {
@@ -69,6 +69,10 @@ export default function ScientificSectorPage() {
     },
   ];
 
+  const formatMoney = (value: number): string => {
+    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const handleAddToCart = (product: { id: string; nameKey: string; price: number; image: string }) => {
     const cartItem: CartItem = {
       id: product.id,
@@ -76,31 +80,24 @@ export default function ScientificSectorPage() {
       name: t(product.nameKey),
       price: product.price,
       image: product.image,
+      quantity: 1,
     };
-    const success = addItem(cartItem);
-    if (success) {
-      setNotification({
-        message: `"${t(product.nameKey)}" ${t('products.added_to_cart')}`,
-        type: 'success',
-      });
-      setFlyoutOpen(true);
-    } else {
-      setNotification({
-        message: `${t('products.cannot_add_more')} "${t(product.nameKey)}" ${t('products.to_cart')}`,
-        type: 'error',
-      });
-    }
+
+    addItem(cartItem);
+
+    setNotification({
+      message: `"${t(product.nameKey)}" ${t('products.added_to_cart')}`,
+      type: 'success',
+    });
+    setFlyoutOpen(true);
+
     setTimeout(() => setNotification(null), 3000);
   };
 
   return (
     <div className="pt-16">
       {notification && (
-        <div
-          className={`fixed top-20 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white text-sm animate-slide-down ${
-            notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-          }`}
-        >
+        <div className="fixed top-20 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white text-sm animate-slide-down bg-green-600">
           {notification.message}
         </div>
       )}
@@ -115,7 +112,7 @@ export default function ScientificSectorPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 to-primary-800/70" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="max-w-2xl animate-fade-in-left">
+          <div className="max-w-2xl">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white font-bpmf leading-tight">
               {t('sector.scientific_title')}
             </h1>
@@ -146,7 +143,7 @@ export default function ScientificSectorPage() {
                     {product.subtitleKey && (
                       <p className="text-xs text-primary-600 font-semibold mb-2">{t(product.subtitleKey)}</p>
                     )}
-                    <div className="text-2xl font-bold text-primary-700 mb-1">${product.price.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-primary-700 mb-1">${formatMoney(product.price)}</div>
                     <p className="text-xs text-gray-400 mb-4">{t('products.mxn')} + {t('products.iva')}</p>
                     <ul className="space-y-1.5 mb-4 flex-1">
                       {features.map((feature, fIndex) => (
@@ -177,9 +174,9 @@ export default function ScientificSectorPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 font-bpmf">{t('home.cta_title')}</h2>
           <p className="text-primary-100 mb-8 text-lg">{t('home.cta_desc')}</p>
-          <Link href="/contacto#formulario" className="btn-primary inline-block text-sm bg-white text-primary-700 hover:bg-gray-100">
+          <NavigationLink href="/contacto#formulario" className="btn-primary inline-block text-sm bg-white text-primary-700 hover:bg-gray-100">
             {t('home.cta_button')}
-          </Link>
+          </NavigationLink>
         </div>
       </section>
     </div>

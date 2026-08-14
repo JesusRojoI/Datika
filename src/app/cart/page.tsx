@@ -7,15 +7,24 @@ import NavigationLink from '@/components/layout/NavigationLink';
 
 export default function CartPage() {
   const { t } = useTranslation('common');
-  const { items, removeItem, getSubtotal, getTax, getTotal, notification, undoRemove, setNotification } = useCartStore();
+  const {
+    items,
+    removeItem,
+    incrementQuantity,
+    decrementQuantity,
+    getSubtotal,
+    getTax,
+    getTotal,
+    notification,
+    undoRemove,
+    setNotification,
+  } = useCartStore();
 
   const formatMoney = (value: number): string => {
     return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Obtener el nombre traducido en tiempo real
   const getItemName = (item: { nameKey: string; name: string }): string => {
-    // Si el nameKey existe, traducir; si no, usar el nombre guardado
     const translated = t(item.nameKey);
     return translated !== item.nameKey ? translated : item.name;
   };
@@ -58,7 +67,7 @@ export default function CartPage() {
             </svg>
             <p className="text-xl text-gray-500 mb-6">{t('cart.empty_cart')}</p>
             <NavigationLink href="/" className="btn-primary inline-block text-sm">
-              Volver al inicio
+              {t('common.back_home')}
             </NavigationLink>
           </div>
         ) : (
@@ -67,16 +76,17 @@ export default function CartPage() {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <div className="col-span-5">{t('products.product')}</div>
-                  <div className="col-span-3 text-center">{t('products.price')}</div>
-                  <div className="col-span-2 text-center">{t('products.quantity')}</div>
-                  <div className="col-span-2 text-right">{t('products.subtotal')}</div>
+                  <div className="col-span-4">{t('products.product')}</div>
+                  <div className="col-span-2 text-center">{t('products.price')}</div>
+                  <div className="col-span-3 text-center">{t('products.quantity')}</div>
+                  <div className="col-span-3 text-right">{t('products.subtotal')}</div>
                 </div>
 
                 <div className="divide-y divide-gray-100">
                   {items.map((item) => (
                     <div key={item.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50/50 transition-colors">
-                      <div className="col-span-5 flex items-center gap-4">
+                      {/* Product */}
+                      <div className="col-span-4 flex items-center gap-3">
                         <button
                           onClick={() => removeItem(item.id)}
                           className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
@@ -89,20 +99,50 @@ export default function CartPage() {
                         <Image
                           src={item.image}
                           alt={getItemName(item)}
-                          width={56}
-                          height={56}
-                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                         />
                         <span className="text-sm font-medium text-gray-900">{getItemName(item)}</span>
                       </div>
-                      <div className="col-span-3 text-center">
+
+                      {/* Price */}
+                      <div className="col-span-2 text-center">
                         <span className="text-sm text-gray-700">${formatMoney(item.price)}</span>
                       </div>
-                      <div className="col-span-2 text-center">
-                        <span className="text-sm text-gray-700">1</span>
+
+                      {/* Quantity with +/- controls */}
+                      <div className="col-span-3 flex items-center justify-center">
+                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => decrementQuantity(item.id)}
+                            className="px-2 py-1.5 text-gray-600 hover:bg-gray-100 transition-colors"
+                            title="Disminuir"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                            </svg>
+                          </button>
+                          <span className="px-3 py-1.5 text-sm font-medium text-gray-900 min-w-[40px] text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => incrementQuantity(item.id)}
+                            className="px-2 py-1.5 text-gray-600 hover:bg-gray-100 transition-colors"
+                            title="Aumentar"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-span-2 text-right">
-                        <span className="text-sm font-semibold text-gray-900">${formatMoney(item.price)}</span>
+
+                      {/* Subtotal */}
+                      <div className="col-span-3 text-right">
+                        <span className="text-sm font-semibold text-gray-900">
+                          ${formatMoney(item.price * item.quantity)}
+                        </span>
                       </div>
                     </div>
                   ))}

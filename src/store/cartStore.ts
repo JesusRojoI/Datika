@@ -6,6 +6,7 @@ export interface CartItem {
   nameKey: string;
   price: number;
   image: string;
+  quantity: number;
 }
 
 interface CartState {
@@ -14,8 +15,11 @@ interface CartState {
   lastRemoved: CartItem | null;
   notification: string | null;
   hydrated: boolean;
-  addItem: (item: CartItem) => boolean;
+  addItem: (item: Omit<CartItem, 'quantity'>) => boolean;
   removeItem: (id: string) => void;
+  updateQuantity: (id: string, quantity: number) => void;
+  incrementQuantity: (id: string) => void;
+  decrementQuantity: (id: string) => void;
   undoRemove: () => void;
   clearCart: () => void;
   setFlyoutOpen: (open: boolean) => void;
@@ -53,21 +57,30 @@ export const useCartStore = create<CartState>((set, get) => ({
   notification: null,
   hydrated: false,
 
-  // Llamar a hydrate al montar para cargar desde localStorage
   hydrate: () => {
     const items = loadCartFromStorage();
     set({ items, hydrated: true });
   },
 
-  addItem: (item: CartItem) => {
+  addItem: (item: Omit<CartItem, 'quantity'>) => {
     const { items } = get();
-    const exists = items.find((i) => i.id === item.id);
-    if (exists) {
-      return false;
+    const existingIndex = items.findIndex((i) => i.id === item.id);
+
+    if (existingIndex !== -1) {
+      // El producto ya existe, incrementar cantidad
+      const newItems = [...items];
+      newItems[existingIndex] = {
+        ...newItems[existingIndex],
+        quantity: newItems[existingIndex].quantity + 1,
+      };
+      saveCartToStorage(newItems);
+      set({ items: newItems, flyoutOpen: true });
+    } else {
+      // Nuevo producto con cantidad 1
+      const newItems = [...items, { ...item, quantity: 1 }];
+      saveCartToStorage(newItems);
+      set({ items: newItems, flyoutOpen: true });
     }
-    const newItems = [...items, item];
-    saveCartToStorage(newItems);
-    set({ items: newItems, flyoutOpen: true });
     return true;
   },
 
@@ -83,6 +96,42 @@ export const useCartStore = create<CartState>((set, get) => ({
         notification: `"${itemToRemove.name}" removed. Undo?`,
       });
     }
+  },
+
+  updateQuantity: (id: string, quantity: number) => {
+    const { items } = get();
+    if (quantity <= 0) {
+      get().removeItem(id);
+      return;
+    }
+    const newItems = items.map((item) =>
+      item.id === id ? { ...item, quantity } : item
+    );
+    saveCartToStorage(newItems);
+    set({ items: newItems });
+  },
+
+  incrementQuantity: (id: string) => {
+    const { items } = get();
+    const newItems = items.map((item) =>
+      item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+    );
+    saveCartToStorage(newItems);
+    set({ items: newItems });
+  },
+
+  decrementQuantity: (id: string) => {
+    const { items } = get();
+    const item = items.find((i) => i.id === id);
+    if (item && item.quantity <= 1) {
+      get().removeItem(id);
+      return;
+    }
+    const newItems = items.map((item) =>
+      item.id === id ? { ...item, quantity: item.quantity - 1 } : item
+    );
+    saveCartToStorage(newItems);
+    set({ items: newItems });
   },
 
   undoRemove: () => {
@@ -107,7 +156,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   getSubtotal: () => {
     const { items } = get();
-    return items.reduce((sum, item) => sum + item.price, 0);
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   },
 
   getTax: () => {
@@ -120,7 +169,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   getItemCount: () => {
-    return get().items.length;
+    const { items } = get();
+    return items.reduce((sum, item) => sum + item.quantity, 0);
   },
 
   setNotification: (msg: string | null) => set({ notification: msg }),

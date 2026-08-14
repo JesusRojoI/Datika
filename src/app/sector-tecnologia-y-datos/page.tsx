@@ -10,7 +10,7 @@ export default function TechSectorPage() {
   const { t } = useTranslation('common');
   const addItem = useCartStore((state) => state.addItem);
   const setFlyoutOpen = useCartStore((state) => state.setFlyoutOpen);
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' } | null>(null);
 
   const pentestProducts = [
     {
@@ -67,6 +67,10 @@ export default function TechSectorPage() {
     },
   ];
 
+  const formatMoney = (value: number): string => {
+    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const handleAddToCart = (product: { id: string; nameKey: string; price: number; image: string }) => {
     const cartItem: CartItem = {
       id: product.id,
@@ -74,35 +78,24 @@ export default function TechSectorPage() {
       name: t(product.nameKey),
       price: product.price,
       image: product.image,
+      quantity: 1,
     };
-    const success = addItem(cartItem);
-    if (success) {
-      setNotification({
-        message: `"${t(product.nameKey)}" ${t('products.added_to_cart')}`,
-        type: 'success',
-      });
-      setFlyoutOpen(true);
-    } else {
-      setNotification({
-        message: `${t('products.cannot_add_more')} "${t(product.nameKey)}" ${t('products.to_cart')}`,
-        type: 'error',
-      });
-    }
-    setTimeout(() => setNotification(null), 3000);
-  };
 
-  const formatMoney = (value: number): string => {
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    addItem(cartItem);
+
+    setNotification({
+      message: `"${t(product.nameKey)}" ${t('products.added_to_cart')}`,
+      type: 'success',
+    });
+    setFlyoutOpen(true);
+
+    setTimeout(() => setNotification(null), 3000);
   };
 
   return (
     <div className="pt-16">
       {notification && (
-        <div
-          className={`fixed top-20 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white text-sm animate-slide-down ${
-            notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-          }`}
-        >
+        <div className="fixed top-20 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white text-sm animate-slide-down bg-green-600">
           {notification.message}
         </div>
       )}
