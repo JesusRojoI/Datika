@@ -20,6 +20,12 @@ export async function POST(request: Request) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const isEnglish = language === 'en';
 
+    // Forward emails desde variables de entorno
+    const forwardEmails = [
+      process.env.ADMIN_EMAIL,
+      process.env.FORWARD_EMAIL_2,
+    ].filter(Boolean) as string[];
+
     if (type === 'contact' && contactData) {
       const contactHTML = `
         <div style="font-family:'Manrope',Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#f8fafc;border-radius:12px;overflow:hidden;">
@@ -38,8 +44,8 @@ export async function POST(request: Request) {
           </div>
         </div>`;
 
-      const adminEmail = process.env.ADMIN_EMAIL;
-      if (adminEmail) {
+      // Forward a todos los correos configurados
+      for (const adminEmail of forwardEmails) {
         await resend.emails.send({
           from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
           to: adminEmail,
@@ -102,6 +108,7 @@ export async function POST(request: Request) {
           </div>
         </div>`;
 
+      // Email al cliente
       await resend.emails.send({
         from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
         to: to,
@@ -109,8 +116,8 @@ export async function POST(request: Request) {
         html: emailHTML,
       });
 
-      const adminEmail = process.env.ADMIN_EMAIL;
-      if (adminEmail) {
+      // Forward a todos los correos configurados
+      for (const adminEmail of forwardEmails) {
         await resend.emails.send({
           from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
           to: adminEmail,
