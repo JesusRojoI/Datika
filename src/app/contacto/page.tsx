@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function ContactPage() {
   const { t, i18n } = useTranslation('common');
@@ -17,6 +17,15 @@ export default function ContactPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  
+  // Anti-spam: Honeypot y tiempo mínimo
+  const [honeypot, setHoneypot] = useState('');
+  const formStartTime = useRef<number>(Date.now());
+
+  useEffect(() => {
+    // Registrar tiempo de inicio al montar el formulario
+    formStartTime.current = Date.now();
+  }, []);
 
   const solutionOptions = [
     { key: 'contact.audit_inventory', value: 'audit_inventory' },
@@ -28,17 +37,62 @@ export default function ContactPage() {
     { key: 'contact.market_research', value: 'market_research' },
   ];
 
+  const validateForm = (): string | null => {
+    if (!formData.fullName.trim()) return t('contact.validation_name_required');
+    if (formData.fullName.trim().length < 2) return t('contact.validation_name_min');
+    
+    if (!formData.company.trim()) return t('contact.validation_company_required');
+    if (formData.company.trim().length < 2) return t('contact.validation_company_min');
+    
+    if (!formData.industry.trim()) return t('contact.validation_industry_required');
+    
+    if (!formData.solution) return t('contact.validation_solution_required');
+    
+    const phoneClean = formData.phone.replace(/\D/g, '');
+    if (phoneClean.length === 0) return t('contact.validation_phone_required');
+    if (phoneClean.length !== 10) return t('contact.validation_phone_digits');
+    if (!/^\d{10}$/.test(phoneClean)) return t('contact.validation_phone_numbers');
+    
+    if (!formData.email.trim()) return t('contact.validation_email_required');
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(formData.email.trim())) return t('contact.validation_email_format');
+    
+    if (!formData.message.trim()) return t('contact.validation_message_required');
+    if (formData.message.trim().length < 10) return t('contact.validation_message_min');
+    
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
 
-    if (!formData.fullName || !formData.company || !formData.industry || !formData.solution || !formData.phone || !formData.email || !formData.message) {
-      setError(t('contact.form_error'));
+    // ==========================================
+    // ANTI-SPAM: Validación de Honeypot
+    // ==========================================
+    if (honeypot !== '') {
+      // Es un bot, fingir éxito para no alertarlo
+      console.log('🚨 Honeypot detectado en el cliente - posible bot');
+      setSuccess(true);
+      setFormData({ fullName: '', company: '', industry: '', solution: '', phone: '', email: '', message: '' });
       return;
     }
 
-    if (formData.solution === '') {
-      setError(t('contact.form_error'));
+    // ==========================================
+    // ANTI-SPAM: Validación de tiempo mínimo
+    // ==========================================
+    const timeToFill = (Date.now() - formStartTime.current) / 1000;
+    if (timeToFill < 5) {
+      console.log('🚨 Tiempo de llenado sospechoso:', timeToFill.toFixed(2), 'segundos');
+      setError(t('contact.validation_too_fast'));
+      return;
+    }
+
+    // Validación del formulario
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -52,28 +106,44 @@ export default function ContactPage() {
           type: 'contact',
           language: i18n.language?.startsWith('en') ? 'en' : 'es',
           contactData: {
-            fullName: formData.fullName,
-            company: formData.company,
-            industry: formData.industry,
+            fullName: formData.fullName.trim(),
+            company: formData.company.trim(),
+            industry: formData.industry.trim(),
             solution: t(`contact.${formData.solution}`),
-            phone: formData.phone,
-            email: formData.email,
-            message: formData.message,
+            phone: formData.phone.trim(),
+            email: formData.email.trim().toLowerCase(),
+            message: formData.message.trim(),
+            // Anti-spam
+            website: honeypot,
+            formTime: Date.now() - formStartTime.current,
           },
         }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setSuccess(true);
         setFormData({ fullName: '', company: '', industry: '', solution: '', phone: '', email: '', message: '' });
       } else {
-        setError(t('common.error'));
+        if (response.status === 429) {
+          setError(t('contact.validation_rate_limit'));
+        } else if (data.errorKey) {
+          setError(t(data.errorKey));
+        } else {
+          setError(t('common.error'));
+        }
       }
     } catch {
       setError(t('common.error'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setFormData({ ...formData, phone: value });
   };
 
   return (
@@ -139,46 +209,74 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* ========================================== */}
+                  {/* HONEYPOT - Campo trampa invisible para bots */}
+                  {/* ========================================== */}
+                  <div style={{ display: 'none', position: 'absolute', left: '-9999px' }} aria-hidden="true">
+                    <label htmlFor="website">Website</label>
+                    <input
+                      type="text"
+                      id="website"
+                      name="website"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.full_name')}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('contact.full_name')} <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                         placeholder={t('contact.full_name_placeholder')}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.company_org')}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('contact.company_org')} <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         value={formData.company}
                         onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                         placeholder={t('contact.company_org_placeholder')}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                        required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.industry')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('contact.industry')} <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={formData.industry}
                       onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
                       placeholder={t('contact.industry_placeholder')}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                      required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.solution_interest')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('contact.solution_interest')} <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={formData.solution}
                       onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm bg-white"
+                      required
                     >
                       <option value="">{t('contact.select_option')}</option>
                       {solutionOptions.map((opt) => (
@@ -191,40 +289,55 @@ export default function ContactPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.phone_contact')}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('contact.phone_contact')} <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder={t('contact.phone_placeholder')}
+                        onChange={handlePhoneChange}
+                        placeholder="55 1234 5678"
+                        maxLength={10}
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                        required
                       />
+                      <p className="text-xs text-gray-400 mt-1">10 dígitos, solo números</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.corporate_email')}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('contact.corporate_email')} <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder={t('contact.email_placeholder')}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                        required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('contact.message_label')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('contact.message_label')} <span className="text-red-500">*</span>
+                    </label>
                     <textarea
                       rows={4}
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       placeholder={t('contact.message_placeholder')}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm resize-none"
+                      required
                     />
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                      {error}
+                    </div>
                   )}
 
                   <button type="submit" disabled={loading} className="btn-primary w-full text-sm">
