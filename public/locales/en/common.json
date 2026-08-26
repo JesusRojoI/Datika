@@ -213,7 +213,11 @@
     "success": "Operation successful",
     "back_home": "Back to Home",
     "no_order_found": "No order information found.",
-    "no_items": "No items in this order."
+    "no_items": "No items in this order.",
+    "currency": {
+  "mxn": "Mexican Peso",
+  "usd": "US Dollar"
+}
   },
   "email": {
     "contact_subject": "New Contact Message - Datika",
@@ -453,6 +457,10 @@
   "legal_p2": "The Client retains at all times their consumer rights before PROFECO (www.profeco.gob.mx) and before the competent courts of Mexico City.",
   "legal_p3": "The Company may modify this policy at any time. Changes apply to projects initiated after the update date. Ongoing projects are governed by the version in effect at the time of their initiation.",
   "company_name": "ALTRUE BUSSINES CALL, S.A. DE C.V.",
-  "version": "Revision 1.0 – 2026"
+  "version": "Revisi,on 1.0 – 2026"
+},
+"currency": {
+  "mxn_name": "Mexican Peso",
+  "usd_name": "US Dollar"
 }
 }

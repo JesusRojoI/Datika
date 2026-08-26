@@ -4,12 +4,14 @@ import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import { useCartStore } from '@/store/cartStore';
+import { useCurrencyStore } from '@/store/currencyStore';
 import { usePathname } from 'next/navigation';
 import NavigationLink from '@/components/layout/NavigationLink';
 
 export function CartFlyout() {
   const { t } = useTranslation('common');
   const { items, flyoutOpen, setFlyoutOpen, removeItem, getSubtotal } = useCartStore();
+  const { formatPrice } = useCurrencyStore();
   const flyoutRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -33,10 +35,6 @@ export function CartFlyout() {
 
   if (!flyoutOpen || items.length === 0) return null;
 
-  const formatMoney = (value: number): string => {
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
   const getItemName = (item: { nameKey: string; name: string }): string => {
     const translated = t(item.nameKey);
     return translated !== item.nameKey ? translated : item.name;
@@ -55,7 +53,7 @@ export function CartFlyout() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{getItemName(item)}</p>
               <p className="text-xs text-gray-500">
-                {item.quantity} × ${formatMoney(item.price)}
+                {item.quantity} × {formatPrice(item.price)}
               </p>
             </div>
             <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
@@ -70,7 +68,7 @@ export function CartFlyout() {
       <div className="p-4 border-t border-gray-100 bg-gray-50">
         <div className="flex justify-between items-center mb-3">
           <span className="text-sm font-medium text-gray-700">{t('products.subtotal')}:</span>
-          <span className="text-sm font-bold text-primary-700">${formatMoney(getSubtotal())}</span>
+          <span className="text-sm font-bold text-primary-700">{formatPrice(getSubtotal())}</span>
         </div>
         <div className="space-y-2">
           <NavigationLink href="/cart" onClick={() => setFlyoutOpen(false)} className="block w-full text-center py-2 px-4 border border-primary-600 text-primary-600 rounded-lg text-sm font-semibold hover:bg-primary-50 transition-all">

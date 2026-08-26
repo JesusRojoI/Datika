@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import Image from 'next/image';
 import { useCartStore, CartItem } from '@/store/cartStore';
+import { useCurrencyStore } from '@/store/currencyStore';
 import NavigationLink from '@/components/layout/NavigationLink';
 
 export default function TechSectorPage() {
@@ -11,6 +12,7 @@ export default function TechSectorPage() {
   const addItem = useCartStore((state) => state.addItem);
   const setFlyoutOpen = useCartStore((state) => state.setFlyoutOpen);
   const [notification, setNotification] = useState<{ message: string; type: 'success' } | null>(null);
+  const { formatPrice } = useCurrencyStore();
 
   const pentestProducts = [
     {
@@ -139,7 +141,7 @@ export default function TechSectorPage() {
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-lg font-bold text-gray-900 mb-2 font-bpmf">{t(product.nameKey)}</h3>
                     <p className="text-xs text-gray-500 mb-2">{t('products.pentest_subtitle')}</p>
-                    <div className="text-2xl font-bold text-primary-700 mb-1">${formatMoney(product.price)}</div>
+                    <div className="text-2xl font-bold text-primary-700 mb-1">{formatPrice(product.price)}</div>
                     <p className="text-xs text-gray-400 mb-4">{t('products.mxn')} + {t('products.iva')}</p>
                     <ul className="space-y-1.5 mb-6 flex-1">
                       {features.map((feature, fIndex) => (
@@ -182,7 +184,7 @@ export default function TechSectorPage() {
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-lg font-bold text-gray-900 mb-1 font-bpmf">{t(product.nameKey)}</h3>
                     <p className="text-xs text-primary-600 font-semibold mb-2">{t(product.subtitleKey)}</p>
-                    <div className="text-2xl font-bold text-primary-700 mb-1">${formatMoney(product.price)}</div>
+                    <div className="text-2xl font-bold text-primary-700 mb-1">{formatPrice(product.price)}</div>
                     <p className="text-xs text-gray-400 mb-4">{t('products.mxn')} + {t('products.iva')}</p>
                     <ul className="space-y-1.5 mb-6 flex-1">
                       {features.map((feature, fIndex) => (
@@ -226,7 +228,7 @@ export default function TechSectorPage() {
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-lg font-bold text-gray-900 mb-1 font-bpmf">{t(product.nameKey)}</h3>
                     <p className="text-xs text-gray-500 mb-2">{t(product.subtitleKey)}</p>
-                    <div className="text-2xl font-bold text-primary-700 mb-1">${formatMoney(product.price)}</div>
+                    <div className="text-2xl font-bold text-primary-700 mb-1">{formatPrice(product.price)}</div>
                     <p className="text-xs text-gray-400 mb-4">{t('products.mxn')} + {t('products.iva')}</p>
                     <ul className="space-y-1.5 mb-6 flex-1">
                       {features.map((feature, fIndex) => (

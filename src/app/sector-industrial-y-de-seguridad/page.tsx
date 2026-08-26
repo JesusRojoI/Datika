@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import Image from 'next/image';
 import { useCartStore, CartItem } from '@/store/cartStore';
+import { useCurrencyStore } from '@/store/currencyStore';
 import NavigationLink from '@/components/layout/NavigationLink';
 
 export default function IndustrialSectorPage() {
@@ -11,6 +12,7 @@ export default function IndustrialSectorPage() {
   const addItem = useCartStore((state) => state.addItem);
   const setFlyoutOpen = useCartStore((state) => state.setFlyoutOpen);
   const [notification, setNotification] = useState<{ message: string; type: 'success' } | null>(null);
+  const { formatPrice } = useCurrencyStore();
 
   const industrialProducts = [
     {
@@ -59,10 +61,6 @@ export default function IndustrialSectorPage() {
       image: 'https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?w=200&h=200&fit=crop',
     },
   ];
-
-  const formatMoney = (value: number): string => {
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
 
   const handleAddToCart = (product: { id: string; nameKey: string; price: number; image: string }) => {
     const cartItem: CartItem = {
@@ -145,7 +143,7 @@ export default function IndustrialSectorPage() {
                       {t(product.productsLabel)} · {t(product.warehouses)}
                     </p>
                     <div className="text-2xl font-bold text-primary-700 mb-1">
-                      ${formatMoney(product.price)}
+                      {formatPrice(product.price)}
                     </div>
                     <p className="text-xs text-gray-400 mb-4">
                       {t('products.mxn')} + {t('products.iva')}
@@ -196,7 +194,7 @@ export default function IndustrialSectorPage() {
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-lg font-bold text-gray-900 mb-2 font-bpmf">{t(product.nameKey)}</h3>
                   <p className="text-sm text-gray-600 mb-4">{t(product.descKey)}</p>
-                  <div className="text-2xl font-bold text-primary-700 mb-1">${formatMoney(product.price)}</div>
+                  <div className="text-2xl font-bold text-primary-700 mb-1">{formatPrice(product.price)}</div>
                   <p className="text-xs text-gray-400 mb-4">{t('products.mxn')} + {t('products.iva')}</p>
                   <button onClick={() => handleAddToCart(product)} className="btn-primary w-full text-center text-sm mt-auto">
                     {t('products.contract')}

@@ -3,6 +3,7 @@
 import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import { useCartStore } from '@/store/cartStore';
+import { useCurrencyStore } from '@/store/currencyStore';
 import NavigationLink from '@/components/layout/NavigationLink';
 
 export default function CartPage() {
@@ -20,9 +21,7 @@ export default function CartPage() {
     setNotification,
   } = useCartStore();
 
-  const formatMoney = (value: number): string => {
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  const { formatPrice } = useCurrencyStore();
 
   const getItemName = (item: { nameKey: string; name: string }): string => {
     const translated = t(item.nameKey);
@@ -85,7 +84,6 @@ export default function CartPage() {
                 <div className="divide-y divide-gray-100">
                   {items.map((item) => (
                     <div key={item.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50/50 transition-colors">
-                      {/* Product */}
                       <div className="col-span-4 flex items-center gap-3">
                         <button
                           onClick={() => removeItem(item.id)}
@@ -105,13 +103,9 @@ export default function CartPage() {
                         />
                         <span className="text-sm font-medium text-gray-900">{getItemName(item)}</span>
                       </div>
-
-                      {/* Price */}
                       <div className="col-span-2 text-center">
-                        <span className="text-sm text-gray-700">${formatMoney(item.price)}</span>
+                        <span className="text-sm text-gray-700">{formatPrice(item.price)}</span>
                       </div>
-
-                      {/* Quantity with +/- controls */}
                       <div className="col-span-3 flex items-center justify-center">
                         <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                           <button
@@ -137,11 +131,9 @@ export default function CartPage() {
                           </button>
                         </div>
                       </div>
-
-                      {/* Subtotal */}
                       <div className="col-span-3 text-right">
                         <span className="text-sm font-semibold text-gray-900">
-                          ${formatMoney(item.price * item.quantity)}
+                          {formatPrice(item.price * item.quantity)}
                         </span>
                       </div>
                     </div>
@@ -157,15 +149,15 @@ export default function CartPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">{t('products.subtotal')}</span>
-                    <span className="text-gray-900 font-medium">${formatMoney(getSubtotal())}</span>
+                    <span className="text-gray-900 font-medium">{formatPrice(getSubtotal())}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">{t('products.iva')}</span>
-                    <span className="text-gray-900 font-medium">${formatMoney(getTax())}</span>
+                    <span className="text-gray-900 font-medium">{formatPrice(getTax())}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between">
                     <span className="text-base font-bold text-gray-900">{t('products.total')}</span>
-                    <span className="text-base font-bold text-primary-700">${formatMoney(getTotal())}</span>
+                    <span className="text-base font-bold text-primary-700">{formatPrice(getTotal())}</span>
                   </div>
                 </div>
                 <NavigationLink href="/checkout" className="btn-primary w-full text-center text-sm mt-6 block">

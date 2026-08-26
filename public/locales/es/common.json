@@ -213,7 +213,11 @@
     "success": "Operación exitosa",
     "back_home": "Volver al inicio",
     "no_order_found": "No se encontró información del pedido.",
-    "no_items": "No hay productos en el pedido."
+    "no_items": "No hay productos en el pedido.",
+    "currency": {
+  "mxn": "Peso Mexicano",
+  "usd": "Dólar Americano"
+}
   },
   "email": {
     "contact_subject": "Nuevo mensaje de contacto - Datika",
@@ -454,5 +458,9 @@
   "legal_p3": "La Empresa puede modificar esta política en cualquier momento. Los cambios aplican a proyectos iniciados después de la fecha de actualización. Los proyectos en curso se rigen por la versión vigente al momento de su inicio.",
   "company_name": "ALTRUE BUSSINES CALL, S.A. DE C.V.",
   "version": "Revisión 1.0 – 2026"
+},
+"currency": {
+  "mxn_name": "Peso Mexicano",
+  "usd_name": "Dólar Americano"
 }
 }

@@ -144,7 +144,7 @@ function validatePurchaseData(orderData: any): { valid: boolean; errorKey?: stri
     return { valid: false, errorKey: 'common.error' };
   }
 
-  if (!orderData.nombre || orderData.nombre.trim() === '') {
+  if (!orderData.nombre || typeof orderData.nombre !== 'string' || orderData.nombre.trim() === '') {
     return { valid: false, errorKey: 'common.error' };
   }
 
@@ -152,7 +152,13 @@ function validatePurchaseData(orderData: any): { valid: boolean; errorKey?: stri
     return { valid: false, errorKey: 'common.error' };
   }
 
-  if (!orderData.transactionId || orderData.transactionId.trim() === '') {
+  // transactionId puede ser string o número
+  if (!orderData.transactionId) {
+    return { valid: false, errorKey: 'common.error' };
+  }
+
+  const transactionIdStr = String(orderData.transactionId);
+  if (transactionIdStr.trim() === '') {
     return { valid: false, errorKey: 'common.error' };
   }
 
@@ -337,95 +343,111 @@ export async function POST(request: Request) {
     }
 
     if (type === 'purchase' && orderData) {
-      console.log('🛒 Procesando compra...');
+  console.log('🛒 Procesando compra...');
 
-      const validation = validatePurchaseData(orderData);
-      if (!validation.valid) {
-        console.error('❌ Validación de compra fallida:', validation.errorKey);
-        console.log('📧 ==========================================\n');
-        return NextResponse.json(
-          { success: false, errorKey: validation.errorKey },
-          { status: 400 }
-        );
-      }
-      console.log('✅ Validación de datos de compra superada');
+  // Validar datos de compra
+  const validation = validatePurchaseData(orderData);
+  if (!validation.valid) {
+    console.error('❌ Validación de compra fallida:', validation.errorKey);
+    console.log('📧 ==========================================\n');
+    return NextResponse.json(
+      { success: false, errorKey: validation.errorKey },
+      { status: 400 }
+    );
+  }
+  console.log('✅ Validación de datos de compra superada');
 
-      console.log('   • Cliente:', orderData.nombre);
-      console.log('   • Email destino:', to);
-      console.log('   • Total:', orderData.total.toFixed(2), 'MXN');
-      console.log('   • Transacción:', orderData.transactionId);
-      console.log('   • Productos:', orderData.productos.length);
+  // ==========================================
+  // DETERMINAR MONEDA
+  // ==========================================
+  const orderCurrency = orderData.currency || 'MXN';
+  const montoFinal = orderData.montoFinal || orderData.total;
+  const currencySymbol = orderCurrency === 'USD' ? 'USD' : 'MXN';
 
-      const productosHTML = orderData.productos
-        .map(
-          (p: any) =>
-            `<tr><td style="padding:8px;border-bottom:1px solid rgba(0,59,128,0.2);color:#1F2937;">${p.nombre} × ${p.cantidad}</td><td style="padding:8px;border-bottom:1px solid rgba(0,59,128,0.2);text-align:right;color:#003B80;">$${p.precio.toFixed(2)}</td></tr>`
-        )
-        .join('');
+  console.log('   • Moneda del pedido:', currencySymbol);
+  console.log('   • Monto final:', montoFinal, currencySymbol);
 
-      const emailHTML = `
-        <div style="font-family:'Manrope',Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#f8fafc;border-radius:12px;overflow:hidden;">
-          <div style="background:linear-gradient(135deg,#003B80,#0056C7);padding:30px;text-align:center;">
-            <h1 style="color:#f8fafc;margin:0;font-size:24px;">${isEnglish ? 'Purchase Confirmed!' : '¡Compra confirmada!'}</h1>
-          </div>
-          <div style="padding:30px;color:#1F2937;">
-            <p style="font-size:16px;">${isEnglish ? `Hello <strong style="color:#003B80;">${orderData.nombre}</strong>,` : `Hola <strong style="color:#003B80;">${orderData.nombre}</strong>,`}</p>
-            <p>${isEnglish ? 'Your order has been processed successfully.' : 'Tu pedido ha sido procesado correctamente.'}</p>
-            <h2 style="color:#1F2937;font-size:18px;border-bottom:2px solid #003B80;padding-bottom:8px;">${isEnglish ? 'Order Summary' : 'Resumen de tu pedido'}</h2>
-            <table style="width:100%;border-collapse:collapse;">${productosHTML}</table>
-            <div style="margin-top:20px;padding:20px;background:#E8F0FE;border-radius:8px;border:1px solid rgba(0,59,128,0.2);">
-              <p><strong>${isEnglish ? 'Subtotal:' : 'Subtotal:'}</strong> <span style="color:#003B80;">$${orderData.subtotal.toFixed(2)}</span></p>
-              ${orderData.descuento > 0 ? `<p><strong>${isEnglish ? 'Discount:' : 'Descuento:'}</strong> <span style="color:#EF4444;">-$${orderData.descuento.toFixed(2)}</span></p>` : ''}
-              <p><strong>${isEnglish ? 'VAT (16%):' : 'IVA (16%):'}</strong> <span style="color:#003B80;">$${orderData.impuesto.toFixed(2)}</span></p>
-              <p style="font-size:18px;"><strong>${isEnglish ? 'Total:' : 'Total:'}</strong> <span style="color:#003B80;">$${orderData.total.toFixed(2)} <span style="font-size:14px;">MXN</span></span></p>
-            </div>
-            <p style="color:#6B7280;"><strong>${isEnglish ? 'Transaction:' : 'Transacción:'}</strong> ${orderData.transactionId}</p>
-            <p>${isEnglish ? 'Thank you for your purchase at' : 'Gracias por tu compra en'} <strong style="color:#003B80;">Datika</strong>.</p>
-          </div>
-          <div style="background:#E8F0FE;padding:20px;text-align:center;border-top:1px solid rgba(0,59,128,0.1);">
-            <p style="color:#6B7280;font-size:12px;margin:0;">Datika - hola@datika.com.mx</p>
-          </div>
-        </div>`;
+  console.log('   • Cliente:', orderData.nombre);
+  console.log('   • Email destino:', to);
+  console.log('   • Transacción:', orderData.transactionId);
+  console.log('   • Productos:', orderData.productos.length);
 
-      console.log(`📤 Enviando confirmación de compra al cliente: ${to}`);
-      try {
-        const clientResult = await resend.emails.send({
-          from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
-          to: to,
-          subject: isEnglish ? 'Purchase Confirmed! - Datika' : '¡Compra confirmada! - Datika',
-          html: emailHTML,
-        });
-        console.log(`✅ Confirmación de compra enviada exitosamente a ${to}`);
-        console.log(`📝 Response ID: ${clientResult.data?.id || 'N/A'}`);
-      } catch (clientError: any) {
-        console.error(`❌ Error enviando confirmación al cliente:`, clientError.message);
-      }
+  // Convertir precios de productos a la moneda correcta
+  const productosHTML = orderData.productos
+    .map((p: any) => {
+      // Si el pago fue en USD, convertir el precio del producto
+      const precioProducto = currencySymbol === 'USD' 
+        ? p.precio * (orderData.usdPerMXN || 0.055) 
+        : p.precio;
+      
+      return `<tr><td style="padding:8px;border-bottom:1px solid rgba(0,59,128,0.2);color:#1F2937;">${p.nombre} × ${p.cantidad}</td><td style="padding:8px;border-bottom:1px solid rgba(0,59,128,0.2);text-align:right;color:#003B80;">$${precioProducto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}</td></tr>`;
+    })
+    .join('');
 
-      console.log('📤 Enviando correos forward de compra...');
-      for (let i = 0; i < forwardEmails.length; i++) {
-        const adminEmail = forwardEmails[i];
-        console.log(`   [${i + 1}/${forwardEmails.length}] Enviando forward a: ${adminEmail}`);
-        try {
-          const result = await resend.emails.send({
-            from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
-            to: adminEmail,
-            subject: isEnglish
-              ? `[FWD] New Purchase - ${orderData.nombre}`
-              : `[FWD] Nueva compra - ${orderData.nombre}`,
-            html: `<div style="font-family:'Manrope',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;border-radius:12px;overflow:hidden;"><div style="background:#003B80;padding:20px;"><h2 style="color:#f8fafc;margin:0;">${isEnglish ? 'New Purchase' : 'Nueva compra'}</h2></div><div style="padding:20px;"><p><strong>${isEnglish ? 'Customer:' : 'Cliente:'}</strong> ${orderData.nombre}</p><p><strong>Total:</strong> <span style="color:#003B80;">$${orderData.total.toFixed(2)} MXN</span></p></div>${emailHTML}</div>`,
-          });
-          console.log(`   ✅ Forward enviado exitosamente a ${adminEmail}`);
-          console.log(`   📝 Response ID: ${result.data?.id || 'N/A'}`);
-        } catch (forwardError: any) {
-          console.error(`   ❌ Error enviando forward a ${adminEmail}:`, forwardError.message);
-        }
-      }
-      console.log('📤 Forward de compra completado');
-      console.log('✅ Proceso de compra completado');
-      console.log('📧 ==========================================\n');
+  const emailHTML = `
+    <div style="font-family:'Manrope',Arial,sans-serif;max-width:600px;margin:0 auto;background-color:#f8fafc;border-radius:12px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#003B80,#0056C7);padding:30px;text-align:center;">
+        <h1 style="color:#f8fafc;margin:0;font-size:24px;">${isEnglish ? 'Purchase Confirmed!' : '¡Compra confirmada!'}</h1>
+      </div>
+      <div style="padding:30px;color:#1F2937;">
+        <p style="font-size:16px;">${isEnglish ? `Hello <strong style="color:#003B80;">${orderData.nombre}</strong>,` : `Hola <strong style="color:#003B80;">${orderData.nombre}</strong>,`}</p>
+        <p>${isEnglish ? 'Your order has been processed successfully.' : 'Tu pedido ha sido procesado correctamente.'}</p>
+        <h2 style="color:#1F2937;font-size:18px;border-bottom:2px solid #003B80;padding-bottom:8px;">${isEnglish ? 'Order Summary' : 'Resumen de tu pedido'}</h2>
+        <table style="width:100%;border-collapse:collapse;">${productosHTML}</table>
+        <div style="margin-top:20px;padding:20px;background:#E8F0FE;border-radius:8px;border:1px solid rgba(0,59,128,0.2);">
+          <p><strong>${isEnglish ? 'Subtotal:' : 'Subtotal:'}</strong> <span style="color:#003B80;">$${montoFinal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}</span></p>
+          <p><strong>${isEnglish ? 'VAT (16%):' : 'IVA (16%):'}</strong> <span style="color:#003B80;">$${(montoFinal * 0.16 / 1.16).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}</span></p>
+          <p style="font-size:18px;"><strong>${isEnglish ? 'Total:' : 'Total:'}</strong> <span style="color:#003B80;">$${montoFinal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}</span></p>
+        </div>
+        <p style="color:#6B7280;"><strong>${isEnglish ? 'Transaction:' : 'Transacción:'}</strong> ${orderData.transactionId}</p>
+        <p>${isEnglish ? 'Thank you for your purchase at' : 'Gracias por tu compra en'} <strong style="color:#003B80;">Datika</strong>.</p>
+      </div>
+      <div style="background:#E8F0FE;padding:20px;text-align:center;border-top:1px solid rgba(0,59,128,0.1);">
+        <p style="color:#6B7280;font-size:12px;margin:0;">Datika - hola@datika.com.mx</p>
+      </div>
+    </div>`;
 
-      return NextResponse.json({ success: true });
+  // Email al cliente
+  console.log(`📤 Enviando confirmación de compra al cliente: ${to}`);
+  try {
+    const clientResult = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
+      to: to,
+      subject: isEnglish ? 'Purchase Confirmed! - Datika' : '¡Compra confirmada! - Datika',
+      html: emailHTML,
+    });
+    console.log(`✅ Confirmación de compra enviada exitosamente a ${to}`);
+    console.log(`📝 Response ID: ${clientResult.data?.id || 'N/A'}`);
+  } catch (clientError: any) {
+    console.error(`❌ Error enviando confirmación al cliente:`, clientError.message);
+  }
+
+  // Forward a todos los correos configurados
+  console.log('📤 Enviando correos forward de compra...');
+  for (let i = 0; i < forwardEmails.length; i++) {
+    const adminEmail = forwardEmails[i];
+    console.log(`   [${i + 1}/${forwardEmails.length}] Enviando forward a: ${adminEmail}`);
+    try {
+      const result = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'hola@datika.com.mx',
+        to: adminEmail,
+        subject: isEnglish
+          ? `[FWD] New Purchase - ${orderData.nombre}`
+          : `[FWD] Nueva compra - ${orderData.nombre}`,
+        html: `<div style="font-family:'Manrope',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;border-radius:12px;overflow:hidden;"><div style="background:#003B80;padding:20px;"><h2 style="color:#f8fafc;margin:0;">${isEnglish ? 'New Purchase' : 'Nueva compra'}</h2></div><div style="padding:20px;"><p><strong>${isEnglish ? 'Customer:' : 'Cliente:'}</strong> ${orderData.nombre}</p><p><strong>Total:</strong> <span style="color:#003B80;">$${montoFinal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}</span></p></div>${emailHTML}</div>`,
+      });
+      console.log(`   ✅ Forward enviado exitosamente a ${adminEmail}`);
+      console.log(`   📝 Response ID: ${result.data?.id || 'N/A'}`);
+    } catch (forwardError: any) {
+      console.error(`   ❌ Error enviando forward a ${adminEmail}:`, forwardError.message);
     }
+  }
+  console.log('📤 Forward de compra completado');
+  console.log('✅ Proceso de compra completado');
+  console.log('📧 ==========================================\n');
+
+  return NextResponse.json({ success: true });
+}
 
     console.log('⚠️ Tipo de correo no reconocido:', type);
     console.log('📧 ==========================================\n');

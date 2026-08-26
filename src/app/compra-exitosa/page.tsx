@@ -17,6 +17,8 @@ interface LastOrder {
   subtotal: number;
   tax: number;
   total: number;
+  currency?: string;
+  montoFinal?: number;
 }
 
 export default function OrderSuccessPage() {
@@ -25,7 +27,6 @@ export default function OrderSuccessPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Solo ejecutar en el cliente
     if (typeof window === 'undefined') return;
 
     try {
@@ -42,8 +43,10 @@ export default function OrderSuccessPage() {
     }
   }, []);
 
-  const formatMoney = (value: number): string => {
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatMoney = (value: number, currency?: string): string => {
+    const formatted = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const currencyLabel = currency || 'MXN';
+    return `$${formatted} ${currencyLabel}`;
   };
 
   const formatDate = (dateString: string): string => {
@@ -69,6 +72,9 @@ export default function OrderSuccessPage() {
       </div>
     );
   }
+
+  const currency = order?.currency || 'MXN';
+  const montoFinal = order?.montoFinal || order?.total || 0;
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50">
@@ -115,7 +121,7 @@ export default function OrderSuccessPage() {
                           </p>
                         </div>
                         <p className="text-sm font-semibold text-gray-900">
-                          ${formatMoney(item.precio * item.cantidad)}
+                          {formatMoney(item.precio * item.cantidad, currency)}
                         </p>
                       </div>
                     ))
@@ -128,15 +134,17 @@ export default function OrderSuccessPage() {
                 <div className="bg-gray-50 px-6 py-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">{t('products.subtotal')}</span>
-                    <span className="text-gray-900">${formatMoney(order.subtotal || 0)}</span>
+                    <span className="text-gray-900">{formatMoney(order.subtotal || 0, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">{t('products.iva')}</span>
-                    <span className="text-gray-900">${formatMoney(order.tax || 0)}</span>
+                    <span className="text-gray-900">{formatMoney(order.tax || 0, currency)}</span>
                   </div>
                   <div className="flex justify-between text-base font-bold border-t border-gray-200 pt-2">
                     <span>{t('products.total')}</span>
-                    <span className="text-primary-700">${formatMoney(order.total || 0)} MXN</span>
+                    <span className="text-primary-700">
+                      {formatMoney(montoFinal, currency)}
+                    </span>
                   </div>
                 </div>
               </div>

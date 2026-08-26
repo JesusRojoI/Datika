@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import Image from 'next/image';
 import { useCartStore, CartItem } from '@/store/cartStore';
+import { useCurrencyStore } from '@/store/currencyStore';
 import NavigationLink from '@/components/layout/NavigationLink';
 
 export default function ScientificSectorPage() {
@@ -11,6 +12,7 @@ export default function ScientificSectorPage() {
   const addItem = useCartStore((state) => state.addItem);
   const setFlyoutOpen = useCartStore((state) => state.setFlyoutOpen);
   const [notification, setNotification] = useState<{ message: string; type: 'success' } | null>(null);
+  const { formatPrice } = useCurrencyStore();
 
   const products = [
     {
@@ -68,10 +70,6 @@ export default function ScientificSectorPage() {
       image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=200&h=200&fit=crop',
     },
   ];
-
-  const formatMoney = (value: number): string => {
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
 
   const handleAddToCart = (product: { id: string; nameKey: string; price: number; image: string }) => {
     const cartItem: CartItem = {
@@ -143,7 +141,7 @@ export default function ScientificSectorPage() {
                     {product.subtitleKey && (
                       <p className="text-xs text-primary-600 font-semibold mb-2">{t(product.subtitleKey)}</p>
                     )}
-                    <div className="text-2xl font-bold text-primary-700 mb-1">${formatMoney(product.price)}</div>
+                    <div className="text-2xl font-bold text-primary-700 mb-1">{formatPrice(product.price)}</div>
                     <p className="text-xs text-gray-400 mb-4">{t('products.mxn')} + {t('products.iva')}</p>
                     <ul className="space-y-1.5 mb-4 flex-1">
                       {features.map((feature, fIndex) => (
